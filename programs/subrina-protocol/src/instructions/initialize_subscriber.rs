@@ -42,7 +42,7 @@ pub fn handler(ctx: Context<InitializeSubscriberAccount>) -> Result<()> {
     subscriber.bump = *ctx.bumps.get("subscriber").unwrap();
     subscriber.has_already_been_initialized = true;
     subscriber.authority = ctx.accounts.who_subscribes.key();
-    subscriber.payment_account = ctx.accounts.subscriber_token_account.key();
+    subscriber.subscriber_payment_account = ctx.accounts.subscriber_token_account.key();
     
     Ok(())
 }

@@ -32,6 +32,7 @@ pub struct Subscribe<'info> {
         mut,
         seeds = [b"state", who_subscribes.key().as_ref()],
         bump = subscriber.bump,
+        has_one = subscriber_payment_account,
         constraint = subscriber.has_already_been_initialized @ ErrorCode::SubscriberNotInitialized,
     )]
     pub subscriber: Box<Account<'info, Subscriber>>,
@@ -41,21 +42,21 @@ pub struct Subscribe<'info> {
         associated_token::mint = mint,
         associated_token::authority = who_subscribes,
     )]
-    pub subscriber_token_wallet: Box<Account<'info, TokenAccount>>,
+    pub subscriber_payment_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
         constraint = subscription_plan.has_already_been_initialized @ ErrorCode::SubscriptionPlanNotInitialized,
         constraint = subscription_plan.is_active @ ErrorCode::SubscriptionPlanInactive,
-        has_one = payment_account @ErrorCode::SubscriptionPlanInvalidPaymentAccount
+        has_one = subscription_plan_payment_account @ErrorCode::SubscriptionPlanInvalidPaymentAccount
     )]
     pub subscription_plan: Box<Account<'info, SubscriptionPlan>>,
 
     #[account(
         mut,
-        constraint = payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
+        constraint = subscription_plan_payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
     )]
-    pub payment_account: Box<Account<'info, TokenAccount>>,
+    pub subscription_plan_payment_account: Box<Account<'info, TokenAccount>>,
 
     // #[account(address = mint::USDC @ ErrorCode::InvalidMint)]
     pub mint: Box<Account<'info, Mint>>,
@@ -71,7 +72,7 @@ pub fn handler(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
     let subscription = &mut ctx.accounts.subscription;
     let subscriber = &mut ctx.accounts.subscriber;
     let subscription_plan = &mut ctx.accounts.subscription_plan;
-    let subscriber_token_wallet = &mut ctx.accounts.subscriber_token_wallet;
+    let subscriber_token_wallet = &mut ctx.accounts.subscriber_payment_account;
 
     if subscription.has_already_been_initialized {
         // user has already been interracted with this subscription before
@@ -126,8 +127,8 @@ pub fn handler(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
 
     charge_for_one_cycle(
         &ctx.accounts.protocol_signer,
-        &ctx.accounts.subscriber_token_wallet,
-        &ctx.accounts.payment_account,
+        &ctx.accounts.subscriber_payment_account,
+        &ctx.accounts.subscription_plan_payment_account,
         &subscription_plan,
         &ctx.accounts.token_program,
     )?;

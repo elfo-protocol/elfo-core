@@ -7,12 +7,15 @@ use anchor_spl::{
 
 #[derive(Accounts)]
 pub struct TakePayment<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
     #[account(
         mut,
-        address = subscriber.payment_account,
-        constraint = payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
+        constraint = subscriber_payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
     )]
-    pub subscriber_token_wallet: Box<Account<'info, TokenAccount>>,
+    pub subscriber_payment_account: Box<Account<'info, TokenAccount>>,
+
 
     #[account(
         mut,
@@ -32,21 +35,16 @@ pub struct TakePayment<'info> {
 
     #[account(
         constraint = subscriber.has_already_been_initialized @ ErrorCode::SubscriberNotInitialized,
+        has_one = subscriber_payment_account
     )]
     pub subscriber: Box<Account<'info, Subscriber>>,
 
     #[account(
         constraint = subscription_plan.has_already_been_initialized @ErrorCode::SubscriptionPlanNotInitialized,
         constraint = subscription_plan.is_active @ ErrorCode::SubscriptionPlanInactive,
-        has_one = payment_account
+        has_one = subscription_plan_payment_account
     )]
     pub subscription_plan: Box<Account<'info, SubscriptionPlan>>,
-
-    #[account(
-        mut,
-        constraint = payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
-    )]
-    pub payment_account: Box<Account<'info, TokenAccount>>,
 
     // #[account(address = mint::USDC @ ErrorCode::InvalidMint)]
     pub mint: Box<Account<'info, Mint>>,
@@ -67,7 +65,7 @@ pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
         ErrorCode::SubscriptionNextPaymentTimestampNotReached
     );
 
-    if !has_enough_balance(&ctx.accounts.subscriber_token_wallet, subscription_plan)? {
+    if !has_enough_balance(&ctx.accounts.subscriber_payment_account, subscription_plan)? {
         // when all the conditions meet, but user has not enough funds
         // cancel the subscription
         subscription.is_active = false;
@@ -77,8 +75,8 @@ pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
 
     charge_for_one_cycle(
         &ctx.accounts.protocol_signer,
-        &ctx.accounts.subscriber_token_wallet,
-        &ctx.accounts.payment_account,
+        &ctx.accounts.subscriber_payment_account,
+        &ctx.accounts.subscription_plan_payment_account,
         &subscription_plan,
         &ctx.accounts.token_program,
     )?;

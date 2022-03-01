@@ -1,6 +1,5 @@
 import * as anchor from '@project-serum/anchor';
 import {Program, Provider, BN, Wallet} from '@project-serum/anchor';
-import {ASSOCIATED_PROGRAM_ID} from '@project-serum/anchor/dist/cjs/utils/token';
 import {ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount} from '@solana/spl-token';
 
 import {
@@ -153,7 +152,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
                 subscriptionPlanAuthor,
                 authority: subscriptionPlanAuthorWallet.publicKey,
                 mint,
-                paymentAccount: subscriptionPaymentUSDCAssociatedAccount,
+                subscriptionPlanPaymentAccount: subscriptionPaymentUSDCAssociatedAccount,
                 rent: SYSVAR_RENT_PUBKEY,
                 subscriptionPlan,
                 tokenProgram: TOKEN_PROGRAM_ID,
@@ -210,7 +209,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         );
 
         assert.ok(
-            subscriptionPlanAccount.paymentAccount.equals(subscriptionPaymentUSDCAssociatedAccount),
+            subscriptionPlanAccount.subscriptionPlanPaymentAccount.equals(subscriptionPaymentUSDCAssociatedAccount),
             "Incorrect payment account."
         );
 
@@ -256,7 +255,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
                 subscriber,
                 whoSubscribes: subscriberWallet.publicKey,
                 mint,
-                associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 rent: SYSVAR_RENT_PUBKEY,
                 systemProgram: SystemProgram.programId
@@ -274,7 +273,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         );
 
         assert.ok(
-            subscriberAccount.paymentAccount.equals(subscriberUSDCAssociatedAccount),
+            subscriberAccount.subscriberPaymentAccount.equals(subscriberUSDCAssociatedAccount),
             "Incrorrect token account assigned to subscriber."
         );
 
@@ -306,11 +305,11 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             accounts: {
                 subscription,
                 protocolSigner,
-                subscriberTokenWallet: subscriberUSDCAssociatedAccount,
+                subscriberPaymentAccount: subscriberUSDCAssociatedAccount,
                 whoSubscribes: subscriberWallet.publicKey,
                 subscriptionPlan,
                 subscriber,
-                paymentAccount: subscriptionPaymentUSDCAssociatedAccount,
+                subscriptionPlanPaymentAccount: subscriptionPaymentUSDCAssociatedAccount,
                 mint,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 clock: SYSVAR_CLOCK_PUBKEY,
@@ -404,12 +403,13 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
 
         const _tx = await program.rpc.tryTakePayment({
             accounts: {
+                authority: environmentWallet.publicKey,
                 protocolSigner,
-                subscriberTokenWallet: subscriberUSDCAssociatedAccount,
+                subscriberPaymentAccount: subscriberUSDCAssociatedAccount,
                 subscriber,
                 subscription,
                 subscriptionPlan,
-                paymentAccount: subscriptionPaymentUSDCAssociatedAccount,
+                subscriptionPlanPaymentAccount: subscriptionPaymentUSDCAssociatedAccount,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 clock: SYSVAR_CLOCK_PUBKEY,
                 mint

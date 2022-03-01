@@ -5,6 +5,9 @@ use anchor_spl::{token::{Mint, TokenAccount, Token}, associated_token::Associate
 #[derive(Accounts)]
 #[instruction(plan_name: String)]
 pub struct CreateSubscriptionPlan<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    
     #[account(
         mut,
         seeds = [b"protocol_state"],
@@ -30,16 +33,13 @@ pub struct CreateSubscriptionPlan<'info> {
     )]
     pub subscription_plan: Box<Account<'info, SubscriptionPlan>>,
 
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
     #[account(
         init_if_needed,
         payer = authority,
         associated_token::mint = mint,
         associated_token::authority = authority,
     )]
-    pub payment_account: Box<Account<'info, TokenAccount>>,
+    pub subscription_plan_payment_account: Box<Account<'info, TokenAccount>>,
 
     // #[account(address = mint::USDC @ ErrorCode::InvalidMint)]
     pub mint: Box<Account<'info, Mint>>,
@@ -70,7 +70,7 @@ pub fn handler(
     subscription_plan.bump = *ctx.bumps.get("subscription_plan").unwrap();
     subscription_plan.plan_name = plan_name;
     subscription_plan.subscription_plan_author = subscription_plan_author.key();
-    subscription_plan.payment_account = ctx.accounts.payment_account.key();
+    subscription_plan.subscription_plan_payment_account = ctx.accounts.subscription_plan_payment_account.key();
     subscription_plan.is_active = true;
 
     let multiplier: i64 = 10_i32.pow(ctx.accounts.mint.decimals.into()).into();

@@ -20,8 +20,8 @@ pub fn has_enough_balance(
 
 pub fn charge_for_one_cycle<'info>(
     protocol_signer: &Box<Account<'info, ProtocolSigner>>,
-    subscriber_token_wallet: &Box<Account<'info, TokenAccount>>,
-    payment_account: &Box<Account<'info, TokenAccount>>,
+    subscriber_payment_account: &Box<Account<'info, TokenAccount>>,
+    subscription_plan_payment_account: &Box<Account<'info, TokenAccount>>,
     subscription_plan: &Box<Account<'info, SubscriptionPlan>>,
     token_program: &Program<'info, Token>,
 ) -> Result<()> {
@@ -36,8 +36,8 @@ pub fn charge_for_one_cycle<'info>(
         CpiContext::new_with_signer(
             token_program.to_account_info(),
             anchor_spl::token::Transfer {
-                from: subscriber_token_wallet.to_account_info().clone(),
-                to: payment_account.to_account_info(),
+                from: subscriber_payment_account.to_account_info().clone(),
+                to: subscription_plan_payment_account.to_account_info(),
                 authority: protocol_signer.to_account_info().clone(),
             },
             &signer_seeds,

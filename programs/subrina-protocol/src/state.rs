@@ -5,7 +5,7 @@ pub struct Subscriber {
     pub bump: u8,
     pub has_already_been_initialized: bool,
     pub authority: Pubkey,
-    pub payment_account: Pubkey,
+    pub subscriber_payment_account: Pubkey,
 
     // This contains the PubKeys of all the subscription accounts the subscriber
     // has interacted with
@@ -28,11 +28,11 @@ pub struct Subscription {
 pub struct SubscriptionPlan {
     pub bump: u8,
     pub has_already_been_initialized: bool,
-    pub plan_name: String,                // subscription plan name
-    pub subscription_plan_author: Pubkey, // who creates the subscription plan
-    pub payment_account: Pubkey,          // usdc wallet to recieve subscription payments
-    pub amount: i64,                      // subscription amount
-    pub frequency: i64,                   // subscription frequency
+    pub plan_name: String,                         // subscription plan name
+    pub subscription_plan_author: Pubkey,          // who creates the subscription plan
+    pub subscription_plan_payment_account: Pubkey, // usdc wallet to recieve subscription payments
+    pub amount: i64,                               // subscription amount
+    pub frequency: i64,                            // subscription frequency
     pub is_active: bool,
 
     // This contains the PubKeys of all the subscription accounts that
