@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
-use crate::{error::ErrorCode, state::*, utils::*};
+use crate::{error::ErrorCode, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     mint,
-    token::{Mint, Token, TokenAccount},
+    token::{self, Mint, Token, TokenAccount},
 };
 
 #[derive(Accounts)]
@@ -72,7 +72,7 @@ pub fn handler(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
     let subscription = &mut ctx.accounts.subscription;
     let subscriber = &mut ctx.accounts.subscriber;
     let subscription_plan = &mut ctx.accounts.subscription_plan;
-    let subscriber_token_wallet = &mut ctx.accounts.subscriber_payment_account;
+    let subscriber_payment_wallet = &mut ctx.accounts.subscriber_payment_account;
 
     if subscription.has_already_been_initialized {
         // user has already been interracted with this subscription before
@@ -95,45 +95,66 @@ pub fn handler(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
     }
 
     // check if the subscriber has enough funds for the first cycle
+    let balance_of_user = token::accessor::amount(&subscriber_payment_wallet.to_account_info())?;
+    let required_balance = subscription_plan.amount;
     require!(
-        has_enough_balance(&subscriber_token_wallet, subscription_plan)?,
+        balance_of_user >= required_balance.try_into().unwrap(),
         ErrorCode::SubscriptionNotEnoughFunds
     );
 
-    // check for delegation
+    // check for delegation and delegate
     let mut amount_to_delegate: i64 = subscription_plan.amount * how_many_cycles;
-    match subscriber_token_wallet.delegate {
-        anchor_lang::solana_program::program_option::COption::None => {
-        },
+    match subscriber_payment_wallet.delegate {
+        anchor_lang::solana_program::program_option::COption::None => {}
         anchor_lang::solana_program::program_option::COption::Some(delegated_account) => {
             if delegated_account.eq(&ctx.accounts.protocol_signer.key()) {
-                let increment: i64 = subscriber_token_wallet.delegated_amount.try_into().unwrap();
+                let increment: i64 = subscriber_payment_wallet
+                    .delegated_amount
+                    .try_into()
+                    .unwrap();
                 amount_to_delegate = amount_to_delegate + increment;
             }
-        },
+        }
     }
-    
+
     anchor_spl::token::approve(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
-             anchor_spl::token::Approve { 
-                 delegate: ctx.accounts.protocol_signer.to_account_info(),
-                 to: subscriber_token_wallet.to_account_info(),
-                 authority: ctx.accounts.who_subscribes.to_account_info()
-                 }
-            ),
-            amount_to_delegate.try_into().unwrap(),
+            anchor_spl::token::Approve {
+                delegate: ctx.accounts.protocol_signer.to_account_info(),
+                to: subscriber_payment_wallet.to_account_info(),
+                authority: ctx.accounts.who_subscribes.to_account_info(),
+            },
+        ),
+        amount_to_delegate.try_into().unwrap(),
     )?;
 
-    charge_for_one_cycle(
-        &ctx.accounts.protocol_signer,
-        &ctx.accounts.subscriber_payment_account,
-        &ctx.accounts.subscription_plan_payment_account,
-        &subscription_plan,
-        &ctx.accounts.token_program,
+    let bump = vec![ctx.accounts.protocol_signer.bump];
+    let inner_seeds = vec![b"protocol_signer".as_ref(), bump.as_ref()];
+    let signer_seeds = vec![&inner_seeds[..]];
+
+    anchor_spl::token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Transfer {
+                from: ctx
+                    .accounts
+                    .subscriber_payment_account
+                    .to_account_info()
+                    .clone(),
+                to: ctx
+                    .accounts
+                    .subscription_plan_payment_account
+                    .to_account_info(),
+                authority: ctx.accounts.protocol_signer.to_account_info().clone(),
+            },
+            &signer_seeds,
+        ),
+        subscription_plan.amount as u64,
     )?;
 
     subscription.is_active = true;
+    subscription.is_cancelled = false;
 
     let clock = &ctx.accounts.clock;
     let current_time = clock.unix_timestamp;

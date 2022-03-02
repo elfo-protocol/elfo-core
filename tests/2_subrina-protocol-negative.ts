@@ -98,15 +98,15 @@ describe('[subrina-protocol] - Negative Test Cases', () => {
         );
 
 
-        const createInvalidPlan = async (amount: number, frequency: number) => {
+        const createInvalidPlan = async (amount: number, frequency: number, fee_percentage: number) => {
             try {
-                const _tx = await program.rpc.createSubscriptionPlan(subscriptionPlanName, new BN(amount), new BN(frequency), {
+                const _tx = await program.rpc.createSubscriptionPlan(subscriptionPlanName, new BN(amount), new BN(frequency), new BN(fee_percentage), {
                     accounts: {
                         protocolState,
                         subscriptionPlanAuthor,
                         authority: subscriptionPlanAuthorWallet.publicKey,
                         mint,
-                        paymentAccount: subscriptionPaymentUSDCAssociatedAccount,
+                        subscriptionPlanPaymentAccount: subscriptionPaymentUSDCAssociatedAccount,
                         rent: SYSVAR_RENT_PUBKEY,
                         subscriptionPlan,
                         tokenProgram: TOKEN_PROGRAM_ID,
@@ -122,23 +122,38 @@ describe('[subrina-protocol] - Negative Test Cases', () => {
         }
 
         // invalid amount min
-        let error1 = await createInvalidPlan(0.5 * Math.pow(10, mint_decimals), 60);
+        let error1 = await createInvalidPlan(0.5 * Math.pow(10, mint_decimals), 60, 3);
         assert.ok(
             error1 != null && error1.code === 6007,
             "Invalid amount check failed."
         );
         
-        let error2 = await createInvalidPlan(100000 * Math.pow(10, mint_decimals), 60);
+        // invalid amount max
+        let error2 = await createInvalidPlan(100000 * Math.pow(10, mint_decimals), 60, 1);
         assert.ok(
             error2 != null && error1.code === 6007,
             "Invalid amount check failed."
         );
 
-        let error3 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 10);
+        // invalid frequency
+        let error3 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 10, 2);
         assert.ok(
             error3 != null && error3.code === 6010,
-            "Invalid amount check failed."
+            "Invalid frequency check failed."
         );
 
+        // invalid fee
+        let error4 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 60, 0.5);
+        assert.ok(
+            error4 != null && error4.code === 6013,
+            "Invalid fee check failed."
+        );
+
+         // invalid fee
+         let error5 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 60, 7);
+         assert.ok(
+              error5 != null && error5.code === 6013,
+             "Invalid fee check failed."
+         );
     });
 });

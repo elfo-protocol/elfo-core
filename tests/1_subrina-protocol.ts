@@ -1,6 +1,6 @@
 import * as anchor from '@project-serum/anchor';
-import {Program, Provider, BN, Wallet} from '@project-serum/anchor';
-import {ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount} from '@solana/spl-token';
+import { Program, Provider, BN, Wallet } from '@project-serum/anchor';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount } from '@solana/spl-token';
 
 import {
     Keypair,
@@ -10,10 +10,10 @@ import {
     SYSVAR_RENT_PUBKEY,
     SYSVAR_CLOCK_PUBKEY
 } from '@solana/web3.js';
-import {assert} from 'chai';
-import {SubrinaProtocol} from '../target/types/subrina_protocol';
-import {delay} from './utils/timer';
-import {createMint, createAssocciatedTokenAccount, mintUSDC} from './utils/token';
+import { assert } from 'chai';
+import { SubrinaProtocol } from '../target/types/subrina_protocol';
+import { delay } from './utils/timer';
+import { createMint, createAssocciatedTokenAccount, mintUSDC } from './utils/token';
 
 const utf8 = anchor.utils.bytes.utf8;
 
@@ -28,6 +28,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
     let mint: PublicKey, mint_decimals = 6;
     let subscriptionPlanAuthorWallet: Wallet, subscriptionPaymentUSDCAssociatedAccount: PublicKey;
     let subscriberWallet: Wallet, subscriberUSDCAssociatedAccount: PublicKey;
+    let nodeAuthorityWallet: Wallet, nodePaymentWallet: Wallet, nodeUSDCAssociatedAccount: PublicKey;
 
     let protocolState: PublicKey, protocolSigner: PublicKey;
 
@@ -36,16 +37,19 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         subscriptionPlanAuthor: PublicKey,
         subscriber: PublicKey,
         subscription: PublicKey,
+        node: PublicKey,
         subscriptionPlanAmount = 20 * Math.pow(10, mint_decimals),
         frequency = 90,
-        how_many_cycles = 12;
+        how_many_cycles = 12,
+        fee_percentage = 5;
 
     let protocolSignerBump: number,
-        protocolStateBump : number,
+        protocolStateBump: number,
         subscriptionPlanBump: number,
         subscriptionPlanAuthorBump: number,
         subscriberBump: number,
-        subscriptionBump: number;
+        subscriptionBump: number,
+        nodeBump;
 
     before('Boilerplates', async () => {
         // Creating a wallet for subscription author
@@ -54,7 +58,13 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
 
         // Creating wallets for subscribers
         subscriberWallet = new Wallet(Keypair.generate());
-        await provider.connection.requestAirdrop(subscriberWallet.publicKey, 1000 * LAMPORTS_PER_SOL)
+        await provider.connection.requestAirdrop(subscriberWallet.publicKey, 1000 * LAMPORTS_PER_SOL);
+
+        // Create wallet for a node
+        nodeAuthorityWallet = new Wallet(Keypair.generate());
+        await provider.connection.requestAirdrop(nodeAuthorityWallet.publicKey, 1000 * LAMPORTS_PER_SOL);
+        nodePaymentWallet = new Wallet(Keypair.generate());
+        await provider.connection.requestAirdrop(nodePaymentWallet.publicKey, 1000 * LAMPORTS_PER_SOL);
 
         // Creating a dummy USDC mint
         mint = await createMint(provider, environmentWallet.publicKey, 6);
@@ -66,6 +76,10 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         // Createing subscriber token payment account with 5000 USDC
         subscriberUSDCAssociatedAccount = await createAssocciatedTokenAccount(provider, mint, subscriberWallet.publicKey);
         await mintUSDC(provider, mint, subscriberUSDCAssociatedAccount, environmentWallet.publicKey, 5000 * Math.pow(10, mint_decimals))
+
+        // Createing a node token payment account with 5000 USDC
+        nodeUSDCAssociatedAccount = await createAssocciatedTokenAccount(provider, mint, nodePaymentWallet.publicKey);
+        await mintUSDC(provider, mint, nodeUSDCAssociatedAccount, environmentWallet.publicKey, 5000 * Math.pow(10, mint_decimals))
     });
 
     it('Initialize protocol', async () => {
@@ -123,6 +137,11 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             "Plan account list not set."
         );
 
+        assert.ok(
+            protocolStateAccount.registeredNodes.length == 0,
+            "Node account list not set."
+        );
+
     });
 
     it('Creates a subscription plan', async () => {
@@ -146,7 +165,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             program.programId
         );
 
-        const _tx = await program.rpc.createSubscriptionPlan(subscriptionPlanName, new BN(subscriptionPlanAmount), new BN(frequency), {
+        const _tx = await program.rpc.createSubscriptionPlan(subscriptionPlanName, new BN(subscriptionPlanAmount), new BN(frequency), new BN(fee_percentage), {
             accounts: {
                 protocolState,
                 subscriptionPlanAuthor,
@@ -331,7 +350,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
 
     it('Verifies delgation', async () => {
         const delegatedAccount = await getAccount(provider.connection, subscriberUSDCAssociatedAccount);
-                
+
         assert.ok(
             delegatedAccount.delegate.equals(protocolSigner),
             "Account not properly delegated."
@@ -393,17 +412,81 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             "Subcriber account does not contain the subscription.")
     });
 
-    it('Tries to take payment of subscription.', async () => {
-        const balanceBeforeProtocolWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
-        const balanceBeforePaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
+    it('Register a node.', async () => {
+        [node, nodeBump] = await PublicKey.findProgramAddress(
+            [
+                utf8.encode("node"),
+                nodeAuthorityWallet.publicKey.toBuffer()
+            ],
+            program.programId
+        );
 
+        const _tx = await program.rpc.registerNode({
+            accounts: {
+                protocolState,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                authority: nodeAuthorityWallet.publicKey,
+                mint,
+                node,
+                nodePaymentAccount: nodeUSDCAssociatedAccount,
+                nodePaymentWallet: nodePaymentWallet.publicKey,
+                rent: SYSVAR_RENT_PUBKEY,
+                systemProgram: SystemProgram.programId,
+                tokenProgram: TOKEN_PROGRAM_ID
+            },
+            signers: [nodeAuthorityWallet.payer]
+        })
+    });
+
+    it('Verifies node details.', async () => {
+        const nodeAccount = await program.account.node.fetch(node);
+        const protocolAccount = await program.account.protocol.fetch(protocolState);
+        assert.ok(
+            nodeAccount.bump == nodeBump,
+            "Pda not set properly"
+        );
+
+        assert.ok(
+            nodeAccount.isRegistered,
+            "Node not registered."
+        );
+
+        assert.ok(
+            nodeAccount.authority.equals(nodeAuthorityWallet.publicKey),
+            "Authority wallet not set."
+        );
+
+        assert.ok(
+            nodeAccount.nodePaymentWallet.equals(nodePaymentWallet.publicKey),
+            "Payment wallet not set."
+        );
+
+        assert.ok(
+            nodeAccount.nodePaymentAccount.equals(nodeUSDCAssociatedAccount),
+            "Node payment account not set."
+        );
+
+        assert.ok(
+            protocolAccount.registeredNodes.at(0).equals(node),
+            "Node not is protocol state."
+        )
+    });
+
+    it('Tries to take payment of subscription.', async () => {
+        const balanceBeforeSubscriberWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
+        const balanceBeforePaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
+        const balanceBeforeNodeWallet = parseInt((await provider.connection.getTokenAccountBalance(nodeUSDCAssociatedAccount)).value.amount)
+        
         const waitTime = frequency + 10;
         console.log(`Waiting ${waitTime} seconds before trying taking payment.`);
         await delay(waitTime * 1000);
 
         const _tx = await program.rpc.tryTakePayment({
             accounts: {
-                authority: environmentWallet.publicKey,
+                node,
+                nodePaymentAccount: nodeUSDCAssociatedAccount,
+                authority: nodeAuthorityWallet.publicKey,
+                nodePaymentWallet: nodePaymentWallet.publicKey,
                 protocolSigner,
                 subscriberPaymentAccount: subscriberUSDCAssociatedAccount,
                 subscriber,
@@ -413,17 +496,23 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
                 tokenProgram: TOKEN_PROGRAM_ID,
                 clock: SYSVAR_CLOCK_PUBKEY,
                 mint
-            }
+            },
+            signers: [nodeAuthorityWallet.payer]
         });
 
-        const balanceAfterProtocolWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
+        const balanceAfterSubscriberWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
         const balanceAfterPaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
+        const balanceAfterNodeWallet = parseInt((await provider.connection.getTokenAccountBalance(nodeUSDCAssociatedAccount)).value.amount);
 
-        assert.ok(balanceBeforeProtocolWallet - balanceAfterProtocolWallet == subscriptionPlanAmount,
+        assert.ok(balanceBeforeSubscriberWallet - balanceAfterSubscriberWallet == subscriptionPlanAmount,
             "Subscription amount not charged properly.");
 
-        assert.ok(balanceAfterPaymentlWallet - balanceBeforePaymentlWallet == subscriptionPlanAmount,
+        const fee = subscriptionPlanAmount * fee_percentage/100;
+        assert.ok(balanceAfterPaymentlWallet - balanceBeforePaymentlWallet == subscriptionPlanAmount - fee,
             "Subscription amount not charged properly.");
+
+        assert.ok(balanceAfterNodeWallet - balanceBeforeNodeWallet == fee,
+                "Subscription amount not charged properly.");
 
         const subscriptionAccount = await program.account.subscription.fetch(subscription);
         const subscriptionPlanAccount = await program.account.subscriptionPlan.fetch(subscriptionPlan);

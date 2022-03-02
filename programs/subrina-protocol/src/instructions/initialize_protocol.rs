@@ -1,4 +1,4 @@
-use crate::{state::*};
+use crate::state::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -28,7 +28,6 @@ pub struct InitializeProtocol<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-
 pub fn handler(ctx: Context<InitializeProtocol>) -> Result<()> {
     let protocol_signer = &mut ctx.accounts.protocol_signer;
     protocol_signer.bump = *ctx.bumps.get("protocol_signer").unwrap();
@@ -38,5 +37,6 @@ pub fn handler(ctx: Context<InitializeProtocol>) -> Result<()> {
     protocol_state.has_already_been_initialized = true;
     protocol_state.authority = ctx.accounts.authority.key();
     protocol_state.subscription_plan_accounts = vec![];
+    protocol_state.registered_nodes = vec![];
     Ok(())
 }

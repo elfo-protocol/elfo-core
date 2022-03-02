@@ -3,11 +3,10 @@ use anchor_lang::prelude::*;
 pub mod error;
 pub mod instructions;
 pub mod state;
-pub mod utils;
 
 use instructions::*;
 
-declare_id!("9Byr46LJDyAgDXzvAUmkpDzxjiwjC2rBuUn1m2AGC4oh");
+declare_id!("FWrg3R4FVkLDaxcA6uYsGhV4hDpKWxu7AgoFUuWGKYUP");
 
 #[program]
 pub mod subrina_protocol {
@@ -34,12 +33,14 @@ pub mod subrina_protocol {
         plan_name: String,
         subscription_amount: i64,
         frequency: i64,
+        fee_percentage: i8,
     ) -> Result<()> {
         instructions::create_subscription_plan::handler(
             ctx,
             plan_name,
             subscription_amount,
             frequency,
+            fee_percentage,
         )
     }
 
@@ -49,5 +50,9 @@ pub mod subrina_protocol {
 
     pub fn try_take_payment(ctx: Context<TakePayment>) -> Result<()> {
         instructions::take_payment::handler(ctx)
+    }
+
+    pub fn register_node(ctx: Context<RegisterNode>) -> Result<()> {
+        instructions::register_node::handler(ctx)
     }
 }

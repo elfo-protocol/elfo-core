@@ -1,17 +1,21 @@
 use crate::{error::ErrorCode, state::*};
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{Mint, TokenAccount, Token}, associated_token::AssociatedToken};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, Token, TokenAccount},
+};
 
 #[derive(Accounts)]
 #[instruction(plan_name: String)]
 pub struct CreateSubscriptionPlan<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    
+
     #[account(
         mut,
         seeds = [b"protocol_state"],
-        bump = protocol_state.bump
+        bump = protocol_state.bump,
+        constraint = protocol_state.has_already_been_initialized
     )]
     pub protocol_state: Box<Account<'info, Protocol>>,
 
@@ -55,6 +59,7 @@ pub fn handler(
     plan_name: String,
     subscription_amount: i64,
     frequency: i64,
+    fee_percentage: i8,
 ) -> Result<()> {
     let subscription_plan_author = &mut ctx.accounts.subscription_plan_author;
 
@@ -70,7 +75,8 @@ pub fn handler(
     subscription_plan.bump = *ctx.bumps.get("subscription_plan").unwrap();
     subscription_plan.plan_name = plan_name;
     subscription_plan.subscription_plan_author = subscription_plan_author.key();
-    subscription_plan.subscription_plan_payment_account = ctx.accounts.subscription_plan_payment_account.key();
+    subscription_plan.subscription_plan_payment_account =
+        ctx.accounts.subscription_plan_payment_account.key();
     subscription_plan.is_active = true;
 
     let multiplier: i64 = 10_i32.pow(ctx.accounts.mint.decimals.into()).into();
@@ -87,13 +93,19 @@ pub fn handler(
     require!(frequency >= 60, ErrorCode::SubscriptionPlanFrequencyError);
     subscription_plan.frequency = frequency;
 
+    require!(fee_percentage >= 1, ErrorCode::SubscriptionPlanFeeError);
+    require!(fee_percentage <= 5, ErrorCode::SubscriptionPlanFeeError);
+    subscription_plan.fee_percentage = fee_percentage;
+
     subscription_plan.subscription_accounts = vec![];
     subscription_plan_author
         .subscription_plan_accounts
         .push(subscription_plan.key());
 
     let state = &mut ctx.accounts.protocol_state;
-    state.subscription_plan_accounts.push(subscription_plan.key());
-    
+    state
+        .subscription_plan_accounts
+        .push(subscription_plan.key());
+
     Ok(())
 }

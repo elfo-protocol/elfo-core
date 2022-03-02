@@ -43,6 +43,6 @@ pub fn handler(ctx: Context<InitializeSubscriberAccount>) -> Result<()> {
     subscriber.has_already_been_initialized = true;
     subscriber.authority = ctx.accounts.who_subscribes.key();
     subscriber.subscriber_payment_account = ctx.accounts.subscriber_token_account.key();
-    
+
     Ok(())
 }

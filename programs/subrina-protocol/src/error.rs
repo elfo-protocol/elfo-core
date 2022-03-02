@@ -45,7 +45,17 @@ pub enum ErrorCode {
     #[msg("Invalid payment account provided.")]
     SubscriptionPlanInvalidPaymentAccount,
 
+    #[msg("Fee percentage must be between 1% and 5%")]
+    SubscriptionPlanFeeError,
+
     // token error ----
     #[msg("Invalid mint.")]
     InvalidMint,
+
+    // node error ----
+    #[msg("Unauthorized to perform the action.")]
+    NodeErrorUnauthorized,
+
+    #[msg("Node not registered.")]
+    NodeNotRegistered,
 }

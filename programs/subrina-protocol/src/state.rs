@@ -34,6 +34,7 @@ pub struct SubscriptionPlan {
     pub amount: i64,                               // subscription amount
     pub frequency: i64,                            // subscription frequency
     pub is_active: bool,
+    pub fee_percentage: i8,
 
     // This contains the PubKeys of all the subscription accounts that
     // interacted (subscribed/unsubscribed) with the subscription plan
@@ -59,9 +60,21 @@ pub struct Protocol {
 
     // This contains PubKeys of all the subscription plan accounts
     pub subscription_plan_accounts: Vec<Pubkey>,
+
+    // This contains PubKeys of all the registered nodes
+    pub registered_nodes: Vec<Pubkey>,
 }
 
 #[account]
 pub struct ProtocolSigner {
     pub bump: u8,
+}
+
+#[account]
+pub struct Node {
+    pub is_registered: bool,
+    pub bump: u8,
+    pub authority: Pubkey,
+    pub node_payment_wallet: Pubkey,
+    pub node_payment_account: Pubkey,
 }

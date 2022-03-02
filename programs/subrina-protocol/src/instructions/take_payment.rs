@@ -1,8 +1,10 @@
-use crate::{error::ErrorCode, state::*, utils::*};
+use std::convert::TryInto;
+
+use crate::{error::ErrorCode, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     mint,
-    token::{Mint, Token, TokenAccount},
+    token::{self, Mint, Token, TokenAccount},
 };
 
 #[derive(Accounts)]
@@ -15,7 +17,6 @@ pub struct TakePayment<'info> {
         constraint = subscriber_payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
     )]
     pub subscriber_payment_account: Box<Account<'info, TokenAccount>>,
-
 
     #[account(
         mut,
@@ -40,11 +41,37 @@ pub struct TakePayment<'info> {
     pub subscriber: Box<Account<'info, Subscriber>>,
 
     #[account(
+        mut,
+        constraint = subscription_plan_payment_account.mint ==  mint.key() @ ErrorCode::InvalidMint
+    )]
+    pub subscription_plan_payment_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
         constraint = subscription_plan.has_already_been_initialized @ErrorCode::SubscriptionPlanNotInitialized,
         constraint = subscription_plan.is_active @ ErrorCode::SubscriptionPlanInactive,
         has_one = subscription_plan_payment_account
     )]
     pub subscription_plan: Box<Account<'info, SubscriptionPlan>>,
+
+    #[account(
+        seeds = [b"node", authority.key().as_ref()],
+        bump = node.bump,
+        has_one = authority,
+        has_one = node_payment_account,
+        has_one = node_payment_wallet,
+        constraint = node.is_registered @ErrorCode::NodeNotRegistered
+    )]
+    pub node: Box<Account<'info, Node>>,
+
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = node_payment_wallet,
+    )]
+    pub node_payment_account: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: node state is checked for payment wallet
+    pub node_payment_wallet: UncheckedAccount<'info>,
 
     // #[account(address = mint::USDC @ ErrorCode::InvalidMint)]
     pub mint: Box<Account<'info, Mint>>,
@@ -65,7 +92,11 @@ pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
         ErrorCode::SubscriptionNextPaymentTimestampNotReached
     );
 
-    if !has_enough_balance(&ctx.accounts.subscriber_payment_account, subscription_plan)? {
+    let balance_of_user =
+        token::accessor::amount(&ctx.accounts.subscriber_payment_account.to_account_info())?;
+    let required_balance = subscription_plan.amount;
+
+    if !(balance_of_user >= required_balance.try_into().unwrap()) {
         // when all the conditions meet, but user has not enough funds
         // cancel the subscription
         subscription.is_active = false;
@@ -73,12 +104,46 @@ pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
         return Ok(());
     }
 
-    charge_for_one_cycle(
-        &ctx.accounts.protocol_signer,
-        &ctx.accounts.subscriber_payment_account,
-        &ctx.accounts.subscription_plan_payment_account,
-        &subscription_plan,
-        &ctx.accounts.token_program,
+    let percentage_for_node: i64 = subscription_plan.fee_percentage.into();
+    let bump = vec![ctx.accounts.protocol_signer.bump];
+    let inner_seeds = vec![b"protocol_signer".as_ref(), bump.as_ref()];
+    let signer_seeds = vec![&inner_seeds[..]];
+
+    anchor_spl::token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Transfer {
+                from: ctx
+                    .accounts
+                    .subscriber_payment_account
+                    .to_account_info()
+                    .clone(),
+                to: ctx
+                    .accounts
+                    .subscription_plan_payment_account
+                    .to_account_info(),
+                authority: ctx.accounts.protocol_signer.to_account_info().clone(),
+            },
+            &signer_seeds,
+        ),
+        (subscription_plan.amount * (100 - percentage_for_node) / 100) as u64,
+    )?;
+
+    anchor_spl::token::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::Transfer {
+                from: ctx
+                    .accounts
+                    .subscriber_payment_account
+                    .to_account_info()
+                    .clone(),
+                to: ctx.accounts.node_payment_account.to_account_info(),
+                authority: ctx.accounts.protocol_signer.to_account_info().clone(),
+            },
+            &signer_seeds,
+        ),
+        (subscription_plan.amount * (percentage_for_node) / 100) as u64,
     )?;
 
     subscription.is_active = true;
