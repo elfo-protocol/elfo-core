@@ -41,7 +41,7 @@ describe('[subrina-protocol] - Negative Test Cases', () => {
         await provider.connection.requestAirdrop(subscriberWallet.publicKey, 1000 * LAMPORTS_PER_SOL)
 
         // Creating a dummy USDC mint
-        mint = await createMint(provider, environmentWallet.publicKey, 6);
+        mint = await createMint(provider, environmentWallet.publicKey, mint_decimals);
 
         // Creating subscription author payment account with 5000 USDC
         subscriptionPaymentUSDCAssociatedAccount = await createAssocciatedTokenAccount(provider, mint, subscriptionPlanAuthorWallet.publicKey);
@@ -92,7 +92,7 @@ describe('[subrina-protocol] - Negative Test Cases', () => {
             [
                 utf8.encode("subscription_plan"),
                 utf8.encode(subscriptionPlanName),
-                subscriptionPlanAuthorWallet.publicKey.toBuffer(),
+                subscriptionPlanAuthor.toBuffer(),
             ],
             program.programId
         );

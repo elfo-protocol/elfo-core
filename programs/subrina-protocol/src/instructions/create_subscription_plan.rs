@@ -31,7 +31,7 @@ pub struct CreateSubscriptionPlan<'info> {
     #[account(
         init,
         payer = authority,
-        seeds = [b"subscription_plan", plan_name.as_bytes(), authority.key().as_ref()],
+        seeds = [b"subscription_plan", plan_name.as_bytes(), subscription_plan_author.key().as_ref()],
         bump,
         space = 8 + 10000 // todo: calculate correct space
     )]

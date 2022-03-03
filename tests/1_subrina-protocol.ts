@@ -160,7 +160,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             [
                 utf8.encode("subscription_plan"),
                 utf8.encode(subscriptionPlanName),
-                subscriptionPlanAuthorWallet.publicKey.toBuffer(),
+                subscriptionPlanAuthor.toBuffer(),
             ],
             program.programId
         );
