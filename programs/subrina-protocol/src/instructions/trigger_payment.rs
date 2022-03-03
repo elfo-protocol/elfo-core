@@ -1,6 +1,10 @@
 use std::convert::TryInto;
 
-use crate::{error::ErrorCode, state::*, constants::{INSUFFICIENT_AMOUNT, DELEGATION_REVOKED, DELEGATED_AMOUNT_NOT_ENOUGH}};
+use crate::{
+    constants::{DELEGATED_AMOUNT_NOT_ENOUGH, DELEGATION_REVOKED, INSUFFICIENT_AMOUNT},
+    error::ErrorCode,
+    state::*,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     mint,
@@ -93,8 +97,7 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
         ErrorCode::SubscriptionNextPaymentTimestampNotReached
     );
 
-    let balance_of_user =
-        token::accessor::amount(&subscriber_payment_account.to_account_info())?;
+    let balance_of_user = token::accessor::amount(&subscriber_payment_account.to_account_info())?;
     let required_balance = subscription_plan.amount;
 
     let mut cancel_subscription = false;
@@ -122,9 +125,9 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
             }
 
             let delegated_amount: i64 = subscriber_payment_account
-                    .delegated_amount
-                    .try_into()
-                    .unwrap();
+                .delegated_amount
+                .try_into()
+                .unwrap();
 
             if delegated_amount < subscription_plan.amount {
                 cancel_subscription = true;

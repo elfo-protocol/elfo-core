@@ -16,10 +16,10 @@ pub struct Subscriber {
 pub struct Subscription {
     pub bump: u8,
     pub has_already_been_initialized: bool,
-    pub subscriber: Pubkey,          // points to the subscriber state account
-    pub subscription_plan: Pubkey,   // points to the subscription plan account
-    pub is_active: bool,             // true if subscription is active
-    pub is_cancelled: bool,          // true if subscription was cancelled after being active
+    pub subscriber: Pubkey,        // points to the subscriber state account
+    pub subscription_plan: Pubkey, // points to the subscription plan account
+    pub is_active: bool,           // true if subscription is active
+    pub is_cancelled: bool,        // true if subscription was cancelled after being active
 
     // 1 = insufficent funds
     // 2 = delegation revoked

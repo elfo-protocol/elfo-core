@@ -50,7 +50,7 @@ pub struct RegisterNode<'info> {
 
 pub fn handler(ctx: Context<RegisterNode>) -> Result<()> {
     let node = &mut ctx.accounts.node;
-    
+
     if !node.is_registered {
         node.is_registered = true;
         node.bump = *ctx.bumps.get("node").unwrap();
