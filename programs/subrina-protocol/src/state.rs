@@ -20,6 +20,12 @@ pub struct Subscription {
     pub subscription_plan: Pubkey,   // points to the subscription plan account
     pub is_active: bool,             // true if subscription is active
     pub is_cancelled: bool,          // true if subscription was cancelled after being active
+
+    // 1 = insufficent funds
+    // 2 = delegation revoked
+    // 3 = delegated amount not enough
+    pub cancellation_reason: i8,
+
     pub last_payment_timestamp: i64, // last payment timstamp
     pub next_payment_timestamp: i64, // next payment timestamp
 }

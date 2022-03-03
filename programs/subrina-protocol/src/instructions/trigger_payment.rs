@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::{error::ErrorCode, state::*};
+use crate::{error::ErrorCode, state::*, constants::{INSUFFICIENT_AMOUNT, DELEGATION_REVOKED, DELEGATED_AMOUNT_NOT_ENOUGH}};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     mint,
@@ -103,6 +103,7 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
         // when all the conditions meet, but user has not enough funds
         // cancel the subscription
         cancel_subscription = true;
+        subscription.cancellation_reason = INSUFFICIENT_AMOUNT;
     }
 
     // check delegation
@@ -111,11 +112,13 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
             // no delegation
             // subscriber has revoked the delegation
             cancel_subscription = true;
+            subscription.cancellation_reason = DELEGATION_REVOKED;
         }
         anchor_lang::solana_program::program_option::COption::Some(delegated_account) => {
             if !delegated_account.eq(&ctx.accounts.protocol_signer.key()) {
                 // delegated to wrong program
                 cancel_subscription = true;
+                subscription.cancellation_reason = DELEGATION_REVOKED;
             }
 
             let delegated_amount: i64 = subscriber_payment_account
@@ -125,6 +128,7 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
 
             if delegated_amount < subscription_plan.amount {
                 cancel_subscription = true;
+                subscription.cancellation_reason = DELEGATED_AMOUNT_NOT_ENOUGH;
             }
         }
     }
