@@ -8,7 +8,7 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
-pub struct TakePayment<'info> {
+pub struct TriggerPayment<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
@@ -80,9 +80,10 @@ pub struct TakePayment<'info> {
     pub clock: Sysvar<'info, Clock>,
 }
 
-pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
+pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
     let subscription_plan = &ctx.accounts.subscription_plan;
     let subscription = &mut ctx.accounts.subscription;
+    let subscriber_payment_account = &mut ctx.accounts.subscriber_payment_account;
 
     let clock = &ctx.accounts.clock;
     let current_time = clock.unix_timestamp;
@@ -93,12 +94,42 @@ pub fn handler(ctx: Context<TakePayment>) -> Result<()> {
     );
 
     let balance_of_user =
-        token::accessor::amount(&ctx.accounts.subscriber_payment_account.to_account_info())?;
+        token::accessor::amount(&subscriber_payment_account.to_account_info())?;
     let required_balance = subscription_plan.amount;
+
+    let mut cancel_subscription = false;
 
     if !(balance_of_user >= required_balance.try_into().unwrap()) {
         // when all the conditions meet, but user has not enough funds
         // cancel the subscription
+        cancel_subscription = true;
+    }
+
+    // check delegation
+    match subscriber_payment_account.delegate {
+        anchor_lang::solana_program::program_option::COption::None => {
+            // no delegation
+            // subscriber has revoked the delegation
+            cancel_subscription = true;
+        }
+        anchor_lang::solana_program::program_option::COption::Some(delegated_account) => {
+            if !delegated_account.eq(&ctx.accounts.protocol_signer.key()) {
+                // delegated to wrong program
+                cancel_subscription = true;
+            }
+
+            let delegated_amount: i64 = subscriber_payment_account
+                    .delegated_amount
+                    .try_into()
+                    .unwrap();
+
+            if delegated_amount < subscription_plan.amount {
+                cancel_subscription = true;
+            }
+        }
+    }
+
+    if cancel_subscription {
         subscription.is_active = false;
         subscription.is_cancelled = true;
         return Ok(());

@@ -48,8 +48,8 @@ pub mod subrina_protocol {
         instructions::close_subscription_plan::handler(ctx)
     }
 
-    pub fn try_take_payment(ctx: Context<TakePayment>) -> Result<()> {
-        instructions::take_payment::handler(ctx)
+    pub fn trigger_payment(ctx: Context<TriggerPayment>) -> Result<()> {
+        instructions::trigger_payment::handler(ctx)
     }
 
     pub fn register_node(ctx: Context<RegisterNode>) -> Result<()> {

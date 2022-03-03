@@ -472,7 +472,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         )
     });
 
-    it('Tries to take payment of subscription.', async () => {
+    it('Trigger payment of subscription.', async () => {
         const balanceBeforeSubscriberWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
         const balanceBeforePaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
         const balanceBeforeNodeWallet = parseInt((await provider.connection.getTokenAccountBalance(nodeUSDCAssociatedAccount)).value.amount)
@@ -481,7 +481,7 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         console.log(`Waiting ${waitTime} seconds before trying taking payment.`);
         await delay(waitTime * 1000);
 
-        const _tx = await program.rpc.tryTakePayment({
+        const _tx = await program.rpc.triggerPayment({
             accounts: {
                 node,
                 nodePaymentAccount: nodeUSDCAssociatedAccount,
