@@ -6,6 +6,9 @@ pub enum ErrorCode {
     #[msg("Subscriber is not initialized.")]
     SubscriberNotInitialized,
 
+    #[msg("Invalid State account")]
+    SubsscriberInvalidStateAccount,
+
     // subscription errors ----
     #[msg("Subscription is not initialized.")]
     SubscriptionNotInitialized,

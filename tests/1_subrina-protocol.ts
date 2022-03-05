@@ -259,7 +259,10 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
         );
     });
 
-    it('Initialize a subscriber', async () => {
+    it('Subscribes to a plan', async () => {
+        const balanceBefore = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
+        const balanceBeforePaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
+
         [subscriber, subscriberBump] = await PublicKey.findProgramAddress(
             [
                 utf8.encode("state"),
@@ -267,49 +270,6 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
             ],
             program.programId
         );
-
-        const _tx = await program.rpc.initializeSubscriber({
-            accounts: {
-                subscriberTokenAccount: subscriberUSDCAssociatedAccount,
-                subscriber,
-                whoSubscribes: subscriberWallet.publicKey,
-                mint,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                rent: SYSVAR_RENT_PUBKEY,
-                systemProgram: SystemProgram.programId
-            },
-            signers: [subscriberWallet.payer]
-        });
-    });
-
-    it('Verifies subscriber account details', async () => {
-        const subscriberAccount = await program.account.subscriber.fetch(subscriber);
-
-        assert.ok(
-            subscriberAccount.bump = subscriberBump,
-            "Incrorrect pda bump."
-        );
-
-        assert.ok(
-            subscriberAccount.subscriberPaymentAccount.equals(subscriberUSDCAssociatedAccount),
-            "Incrorrect token account assigned to subscriber."
-        );
-
-        assert.ok(
-            subscriberAccount.hasAlreadyBeenInitialized,
-            "Not initialized."
-        );
-
-        assert.ok(
-            subscriberAccount.subscriptionAccounts.length == 0,
-            "Subscription account list is not empty."
-        );
-    });
-
-    it('Subscribes to a plan', async () => {
-        const balanceBefore = parseInt((await provider.connection.getTokenAccountBalance(subscriberUSDCAssociatedAccount)).value.amount);
-        const balanceBeforePaymentlWallet = parseInt((await provider.connection.getTokenAccountBalance(subscriptionPaymentUSDCAssociatedAccount)).value.amount);
 
         [subscription, subscriptionBump] = await PublicKey.findProgramAddress(
             [
@@ -331,8 +291,10 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
                 subscriptionPlanPaymentAccount: subscriptionPaymentUSDCAssociatedAccount,
                 mint,
                 tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 clock: SYSVAR_CLOCK_PUBKEY,
                 rent: SYSVAR_RENT_PUBKEY,
+
                 systemProgram: SystemProgram.programId
             },
             signers: [subscriberWallet.payer]
@@ -346,6 +308,26 @@ describe('[subrina-protocol] - Positive Test Cases', () => {
 
         assert.ok(balanceAfterPaymentlWallet - balanceBeforePaymentlWallet == subscriptionPlanAmount,
             "Subscription amount not charged properly.");
+    });
+
+    it('Verifies subscriber account details', async () => {
+        const subscriberAccount = await program.account.subscriber.fetch(subscriber);
+
+        assert.ok(
+            subscriberAccount.bump = subscriberBump,
+            "Incrorrect pda bump."
+        );
+
+        assert.ok(
+            subscriberAccount.subscriberPaymentAccount.equals(subscriberUSDCAssociatedAccount),
+            "Incrorrect token account assigned to subscriber."
+        );
+
+        assert.ok(
+            subscriberAccount.hasAlreadyBeenInitialized,
+            "Not initialized."
+        );
+
     });
 
     it('Verifies delgation', async () => {

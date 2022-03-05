@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use crate::{error::ErrorCode, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::{
+    associated_token::AssociatedToken,
     mint,
     token::{self, Mint, Token, TokenAccount},
 };
@@ -29,16 +30,17 @@ pub struct Subscribe<'info> {
     pub subscription: Box<Account<'info, Subscription>>,
 
     #[account(
-        mut,
+        init_if_needed,
+        payer = who_subscribes,
         seeds = [b"state", who_subscribes.key().as_ref()],
-        bump = subscriber.bump,
-        has_one = subscriber_payment_account,
-        constraint = subscriber.has_already_been_initialized @ ErrorCode::SubscriberNotInitialized,
+        bump,
+        space=8+1000
     )]
     pub subscriber: Box<Account<'info, Subscriber>>,
 
     #[account(
-        mut,
+        init_if_needed,
+        payer = who_subscribes,
         associated_token::mint = mint,
         associated_token::authority = who_subscribes,
     )]
@@ -62,12 +64,34 @@ pub struct Subscribe<'info> {
     pub mint: Box<Account<'info, Mint>>,
 
     pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
     pub rent: Sysvar<'info, Rent>,
     pub clock: Sysvar<'info, Clock>,
 }
 
 pub fn handler(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
+    let subscriber = &mut ctx.accounts.subscriber;
+
+    if !subscriber.has_already_been_initialized {
+        subscriber.has_already_been_initialized = true;
+        subscriber.bump = *ctx.bumps.get("subscriber").unwrap();
+        subscriber.authority = ctx.accounts.who_subscribes.key();
+        subscriber.subscriber_payment_account = ctx.accounts.subscriber_payment_account.key();
+        subscriber.subscription_accounts = vec![];
+    } else {
+        require!(
+            subscriber.authority.eq(&ctx.accounts.who_subscribes.key()),
+            ErrorCode::SubsscriberInvalidStateAccount
+        );
+        require!(
+            subscriber
+                .subscriber_payment_account
+                .eq(&ctx.accounts.subscriber_payment_account.key()),
+            ErrorCode::SubsscriberInvalidStateAccount
+        );
+    }
+
     // check if already subscribed
     let subscription = &mut ctx.accounts.subscription;
     let subscriber = &mut ctx.accounts.subscriber;

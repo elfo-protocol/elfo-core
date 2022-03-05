@@ -17,10 +17,6 @@ pub mod subrina_protocol {
         instructions::initialize_protocol::handler(ctx)
     }
 
-    pub fn initialize_subscriber(ctx: Context<InitializeSubscriberAccount>) -> Result<()> {
-        instructions::initialize_subscriber::handler(ctx)
-    }
-
     pub fn subscribe(ctx: Context<Subscribe>, how_many_cycles: i64) -> Result<()> {
         instructions::subscribe::handler(ctx, how_many_cycles)
     }

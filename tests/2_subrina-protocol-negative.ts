@@ -124,35 +124,35 @@ describe('[subrina-protocol] - Negative Test Cases', () => {
         // invalid amount min
         let error1 = await createInvalidPlan(0.5 * Math.pow(10, mint_decimals), 60, 3);
         assert.ok(
-            error1 != null && error1.code === 6007,
+            error1 != null && error1.code === 6008,
             "Invalid amount check failed."
         );
         
         // invalid amount max
         let error2 = await createInvalidPlan(100000 * Math.pow(10, mint_decimals), 60, 1);
         assert.ok(
-            error2 != null && error1.code === 6007,
+            error2 != null && error1.code === 6008,
             "Invalid amount check failed."
         );
 
         // invalid frequency
         let error3 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 10, 2);
         assert.ok(
-            error3 != null && error3.code === 6010,
+            error3 != null && error3.code === 6011,
             "Invalid frequency check failed."
         );
 
         // invalid fee
         let error4 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 60, 0.5);
         assert.ok(
-            error4 != null && error4.code === 6013,
+            error4 != null && error4.code === 6014,
             "Invalid fee check failed."
         );
 
          // invalid fee
          let error5 = await createInvalidPlan(20 * Math.pow(10, mint_decimals), 60, 7);
          assert.ok(
-              error5 != null && error5.code === 6013,
+              error5 != null && error5.code === 6014,
              "Invalid fee check failed."
          );
     });
