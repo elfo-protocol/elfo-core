@@ -7,10 +7,10 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("FWrg3R4FVkLDaxcA6uYsGhV4hDpKWxu7AgoFUuWGKYUP");
+declare_id!("cHSMTMnhLhXdVqNmMgquztThw4i4LzrFFkzs9umh7ti");
 
 #[program]
-pub mod subrina_protocol {
+pub mod elfo_protocol {
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeProtocol>) -> Result<()> {

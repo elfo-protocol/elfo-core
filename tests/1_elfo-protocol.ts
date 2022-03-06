@@ -11,18 +11,18 @@ import {
     SYSVAR_CLOCK_PUBKEY
 } from '@solana/web3.js';
 import { assert } from 'chai';
-import { SubrinaProtocol } from '../target/types/subrina_protocol';
+import { ElfoProtocol } from '../target/types/elfo_protocol';
 import { delay } from './utils/timer';
 import { createMint, createAssocciatedTokenAccount, mintUSDC } from './utils/token';
 
 const utf8 = anchor.utils.bytes.utf8;
 
-describe('[subrina-protocol] - Positive Test Cases', () => {
+describe('[elfo-protocol] - Positive Test Cases', () => {
 
     const provider = Provider.env();
     anchor.setProvider(provider);
 
-    const program = anchor.workspace.SubrinaProtocol as Program<SubrinaProtocol>;
+    const program = anchor.workspace.ElfoProtocol as Program<ElfoProtocol>;
     const environmentWallet = program.provider.wallet;
 
     let mint: PublicKey, mint_decimals = 6;

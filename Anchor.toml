@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-subrina_protocol = "FWrg3R4FVkLDaxcA6uYsGhV4hDpKWxu7AgoFUuWGKYUP"
+elfo_protocol = "cHSMTMnhLhXdVqNmMgquztThw4i4LzrFFkzs9umh7ti"
 
 [registry]
 url = "https://anchor.projectserum.com"

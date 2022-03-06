@@ -1,12 +1,12 @@
 [package]
-name = "subrina-protocol"
+name = "elfo-protocol"
 version = "0.1.0"
 description = "A subscription protocol on solana"
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "subrina_protocol"
+name = "elfo_protocol"
 
 [features]
 no-entrypoint = []
