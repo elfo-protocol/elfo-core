@@ -7,7 +7,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("cHSMTMnhLhXdVqNmMgquztThw4i4LzrFFkzs9umh7ti");
+declare_id!("4T5P9n2Wy5f4KreDvXNKB5EBP6tSUe9YcPGJGXHbKJY5");
 
 #[program]
 pub mod elfo_protocol {
