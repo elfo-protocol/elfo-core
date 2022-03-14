@@ -25,7 +25,7 @@ pub struct Subscribe<'info> {
         payer = who_subscribes,
         seeds = [b"subscription", subscriber.key().as_ref(), subscription_plan.key().as_ref()],
         bump,
-        space=8+1000 //todo: calculate correct space
+        space=Subscription::space()
     )]
     pub subscription: Box<Account<'info, Subscription>>,
 
@@ -34,7 +34,7 @@ pub struct Subscribe<'info> {
         payer = who_subscribes,
         seeds = [b"state", who_subscribes.key().as_ref()],
         bump,
-        space=8+1000
+        space=Subscriber::space()
     )]
     pub subscriber: Box<Account<'info, Subscriber>>,
 

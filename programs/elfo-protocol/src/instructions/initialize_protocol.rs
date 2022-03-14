@@ -8,7 +8,7 @@ pub struct InitializeProtocol<'info> {
         payer = authority,
         seeds = [b"protocol_signer"],
         bump,
-        space =8+100 // todo: calculate correct space
+        space = ProtocolSigner::space()
     )]
     pub protocol_signer: Box<Account<'info, ProtocolSigner>>,
 
@@ -17,7 +17,7 @@ pub struct InitializeProtocol<'info> {
         payer = authority,
         seeds = [b"protocol_state"],
         bump,
-        space=8+1000 //todo: calculate correct space
+        space= Protocol::space()
     )]
     pub protocol_state: Box<Account<'info, Protocol>>,
 

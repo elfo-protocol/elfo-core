@@ -1,7 +1,10 @@
 [features]
 seeds = false
 [programs.localnet]
-elfo_protocol = "4T5P9n2Wy5f4KreDvXNKB5EBP6tSUe9YcPGJGXHbKJY5"
+elfo_protocol = "BJgusPC7xJRCGsFcwEwMGExkqdbYRGy3pugoKwkFDzZx"
+
+[programs.devnet]
+elfo_protocol = "BJgusPC7xJRCGsFcwEwMGExkqdbYRGy3pugoKwkFDzZx"
 
 [registry]
 url = "https://anchor.projectserum.com"

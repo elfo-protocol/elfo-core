@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use crate::{
-    constants::{DELEGATED_AMOUNT_NOT_ENOUGH, DELEGATION_REVOKED, INSUFFICIENT_AMOUNT},
+    constants::{CANCELLATION_DELEGATED_AMOUNT_NOT_ENOUGH, CANCELLATION_DELEGATION_REVOKED, CANCELLATION_INSUFFICIENT_AMOUNT},
     error::ErrorCode,
     state::*,
 };
@@ -106,7 +106,7 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
         // when all the conditions meet, but user has not enough funds
         // cancel the subscription
         cancel_subscription = true;
-        subscription.cancellation_reason = INSUFFICIENT_AMOUNT;
+        subscription.cancellation_reason = CANCELLATION_INSUFFICIENT_AMOUNT;
     }
 
     // check delegation
@@ -115,13 +115,13 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
             // no delegation
             // subscriber has revoked the delegation
             cancel_subscription = true;
-            subscription.cancellation_reason = DELEGATION_REVOKED;
+            subscription.cancellation_reason = CANCELLATION_DELEGATION_REVOKED;
         }
         anchor_lang::solana_program::program_option::COption::Some(delegated_account) => {
             if !delegated_account.eq(&ctx.accounts.protocol_signer.key()) {
                 // delegated to wrong program
                 cancel_subscription = true;
-                subscription.cancellation_reason = DELEGATION_REVOKED;
+                subscription.cancellation_reason = CANCELLATION_DELEGATION_REVOKED;
             }
 
             let delegated_amount: i64 = subscriber_payment_account
@@ -131,7 +131,7 @@ pub fn handler(ctx: Context<TriggerPayment>) -> Result<()> {
 
             if delegated_amount < subscription_plan.amount {
                 cancel_subscription = true;
-                subscription.cancellation_reason = DELEGATED_AMOUNT_NOT_ENOUGH;
+                subscription.cancellation_reason = CANCELLATION_DELEGATED_AMOUNT_NOT_ENOUGH;
             }
         }
     }

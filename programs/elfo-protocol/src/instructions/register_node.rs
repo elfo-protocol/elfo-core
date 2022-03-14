@@ -16,7 +16,7 @@ pub struct RegisterNode<'info> {
         payer = authority,
         seeds = [b"node", authority.key().as_ref()],
         bump,
-        space=8+1000 //todo: calculate correct space
+        space = Node::space()
     )]
     pub node: Box<Account<'info, Node>>,
 

@@ -24,7 +24,7 @@ pub struct CreateSubscriptionPlan<'info> {
         payer = authority,
         seeds = [b"subscription_plan_author", authority.key().as_ref()],
         bump,
-        space = 8 + 10000 // todo: calculate correct space
+        space = SubscriptionPlanAuthor::space()
     )]
     pub subscription_plan_author: Box<Account<'info, SubscriptionPlanAuthor>>,
 
@@ -33,7 +33,7 @@ pub struct CreateSubscriptionPlan<'info> {
         payer = authority,
         seeds = [b"subscription_plan", plan_name.as_bytes(), subscription_plan_author.key().as_ref()],
         bump,
-        space = 8 + 10000 // todo: calculate correct space
+        space = SubscriptionPlan::space(&plan_name)
     )]
     pub subscription_plan: Box<Account<'info, SubscriptionPlan>>,
 
