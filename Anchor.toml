@@ -10,7 +10,7 @@ elfo_protocol = "BJgusPC7xJRCGsFcwEwMGExkqdbYRGy3pugoKwkFDzZx"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/home/irshad/.config/solana/id.json"
 
 [scripts]
