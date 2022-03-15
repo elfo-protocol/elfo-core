@@ -1,12 +1,17 @@
 [package]
-name = "elfo-protocol"
+name = "elfo-protocol-core"
 version = "0.1.0"
 description = "A subscription protocol on solana"
 edition = "2018"
+license = "Apache-2.0"
+homepage = "https://eflo.cc/"
+repository = "https://github.com/elfo-protocol/elfo-core/"
+documentation = "https://elfo.cc/docs"
+readme = "../../README.md"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "elfo_protocol"
+name = "elfo_protocol_core"
 
 [features]
 no-entrypoint = []
