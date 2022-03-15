@@ -31,7 +31,20 @@ The protocol consists of three main componenets.
 ---
 
 # Core Program
-The program is written using [anchor protocol](https://github.com/project-serum/anchor/). Instructions listed bellow makes up the protocol.
+
+This repository contains the core program of the elfo protocol.
+
+To use `elfo-ptotocol` for CPI, add `elfo-protocol-core` under `[dependencies]` in `cargo.toml` file. Make sure `"cpi"` feature is enabled.
+
+
+```
+[dependencies]
+...
+elfo-protocol-core = {version="0.1.0", features=["cpi"]}
+```
+
+
+Instructions listed bellow makes up the protocol.
 
 ### create_subscription_plan
 
